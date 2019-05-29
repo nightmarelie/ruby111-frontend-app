@@ -1,0 +1,11 @@
+{
+  "name": "cilambda",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "adm-zip": "0.4.7",
+    "async": "^2.6.0",
+    "aws-sdk": "^2.188.0",
+    "mime": "^2.2.0"
+  }
+}

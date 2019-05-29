@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  SourceBucket:
+    Type: String
+    Description: S3 bucket name for the CodeBuild artifact
+  SourceArtifact:
+    Type: String
+    Description: S3 object key for the CodeBuild artifact
+  SubDomain:
+    Type: String
+    Description: Value passed from parent stack params
+  SlackNotificationsHook:
+    Type: String
+    Description: Value passed from parent stack params
+  CloudFrontDistributionId:
+    Type: String
+    Default: ""
+    Description: Value passed from parent stack params
+
+Globals:
+  Function:
+    Runtime: nodejs8.10
+    Environment:
+      Variables:
+        SLACK_HOOK_URL: !Ref SlackNotificationsHook
+        CLOUD_FRONT_DISTRIBUTION_ID: !Ref CloudFrontDistributionId
+
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref SubDomain
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+
+  WebsiteDeployment:
+    Type: Custom::WebsiteDeployment
+    Properties:
+      ServiceToken: !GetAtt DeploymentCustomResourceLambda.Arn
+      Options:
+        SourceBucket: !Ref SourceBucket
+        SourceArtifact: !Ref SourceArtifact
+        DestinationBucket: !Ref WebsiteBucket
+
+  ##########################################
+  # Custom resources for S3 Upload         #
+  ##########################################
+
+  DeploymentCustomResourceLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: '/'
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${SourceBucket}/${SourceArtifact}'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+              - Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                Resource: '*'
+
+  DeploymentCustomResourceLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./s3-deployment-custom-resource
+      Handler: index.handler
+      MemorySize: 512
+      Role: !GetAtt DeploymentCustomResourceLambdaExecutionRole.Arn
+      Timeout: 300
+
+  SlackNotificationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./s3-deployment-custom-resource
+      Handler: index.notify_slack_of_pipeline_changes
+      MemorySize: 128
+      Role: !GetAtt DeploymentCustomResourceLambdaExecutionRole.Arn
+      Timeout: 10
+
+  ############################################
+  # / Custom resources for S3 Upload         #
+  ############################################
+
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+    Description: URL for the website hosted on S3

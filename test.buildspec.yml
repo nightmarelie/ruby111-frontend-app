@@ -1,0 +1,21 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - cd $CODEBUILD_SRC_DIR; npm install aws-sdk --save
+      #- cd $CODEBUILD_SRC_DIR; npm install
+  pre_build:
+    commands:
+    #- cd $CODEBUILD_SRC_DIR; node configure.js $STAGE
+  build:
+    commands:
+    #- cd $CODEBUILD_SRC_DIR; CI=true npm run test -- --coverage
+  post_build:
+    commands:
+    #- cd $CODEBUILD_SRC_DIR/coverage; zip -r ../package.zip *
+#      - cd $CODEBUILD_SRC_DIR; zip -r ../package.zip *
+#artifacts:
+#  files:
+#    - package.zip
+#  discard-paths: yes

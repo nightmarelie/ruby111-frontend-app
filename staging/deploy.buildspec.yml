@@ -1,0 +1,14 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - cd $CODEBUILD_SRC_DIR; npm install aws-sdk --save
+      - npm i
+  build:
+    commands:
+      - node node_modules/react-scripts/bin/react-scripts.js build
+artifacts:
+  files:
+    - '**/*'
+  base-directory: build

@@ -1,0 +1,25 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - cd $CODEBUILD_SRC_DIR; npm install aws-sdk --save
+      - npm i
+      #- cd $CODEBUILD_SRC_DIR; npm install
+  pre_build:
+    commands:
+      - node node_modules/react-scripts/bin/react-scripts.js test --forceExit --detectOpenHandles --no-watch --json --outputFile=tests.report.$CHECK_SUITE_ID.json
+    #- cd $CODEBUILD_SRC_DIR; node configure.js $STAGE
+    finally:
+      - sed -i.bak s,$CODEBUILD_SRC_DIR/,'',g tests.report.$CHECK_SUITE_ID.json
+      - aws s3 cp tests.report.$CHECK_SUITE_ID.json s3://$BUILD_OUTPUT_BUCKET
+  build:
+    commands:
+    #- cd $CODEBUILD_SRC_DIR; CI=true npm run test -- --coverage
+  post_build:
+    commands:
+    #- cd $CODEBUILD_SRC_DIR/coverage; zip -r ../package.zip *
+#      - cd $CODEBUILD_SRC_DIR; zip -r ../package.zip *
+artifacts:
+  files:
+    - package.zip

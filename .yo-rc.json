@@ -1,0 +1,9 @@
+{
+  "generator-agonb": {
+    "repository_url": "git@github.com:nightmarelie/ruby111-frontend-app.git",
+    "project_destination_path": "ruby111-frontend-app",
+    "application_name": "ruby111FrontEnd",
+    "project_technology": "frontend-deployment",
+    "api_url": ""
+  }
+}
